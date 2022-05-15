@@ -1,6 +1,4 @@
-﻿#pragma once
-
-void drawLoadMenu();
+﻿void drawLoadMenu();
 void saveGame(HANDLE old);
 void writeSaveFile();
 void gotoXY(int x, int y);

@@ -693,6 +693,7 @@ void drawFood(unordered_set<int> food)
         screen1.color[x] = 12 + 12 * 16;
     }
 }
+
 struct snake
 {
     int score;
@@ -709,7 +710,7 @@ struct snake
         deadTime = 0;
         state = inside;
         direction = 'D'; // Ban đầu hướng di chuyển là sang phải
-        speed = 1;       // Tốc độ ban đầu của rắn
+        speed = 0.9;       // Tốc độ ban đầu của rắn
         dead = false;
         body = {
             {-50, -50},
@@ -796,7 +797,6 @@ struct snake
     }
 
 } snake1;
-
 // Ve ran
 void draw(snake x)
 {
@@ -882,10 +882,11 @@ void clear(screen& s)
 
 void resetGame()
 {
-    level--;
+    level = 0;
     snake1.resetData();
     food.clear();
 }
+
 // Lấy các lệnh di chuyển
 unordered_map<char, bool> key = { {'W', false}, {'S', false}, {'A', false}, {'D', false}, {' ', false},{'[', false},{']', false},{'|',false} };
 
@@ -893,6 +894,7 @@ struct Save
 {
     wstring name;
     int level;
+    
     chrono::system_clock::time_point saveTime;
     snake snak;
 };
@@ -918,8 +920,9 @@ void writeSaveFile()
         fout << i.snak.speed << '\n';
         fout << i.snak.dead << '\n';
         fout << i.snak.body.size() << '\n';
-        for (auto a = i.snak.body.begin(); a != i.snak.body.end(); a++)
-            fout << a->X << ' ' << a->Y << '\n';
+        list<coordinate>::iterator it;
+        for (it = i.snak.body.begin(); it != i.snak.body.end(); it++)
+            fout << it->X << ' ' << it->Y << '\n';
     }
     fout.close();
 }
@@ -950,6 +953,7 @@ void loadSaveFile()
         fin >> save[i].snak.speed;
         fin >> save[i].snak.dead;
         fin >> t;
+        save[i].snak.body.clear();
         for (int j = 0; j < t; j++)
         {
             fin >> coordi.X >> coordi.Y;
@@ -969,17 +973,16 @@ void loadSave(Save& save)
 
 void saveGame(HANDLE old)
 {
-    coordinate coordi = { 10, height / 2 };
+    coordinate coordi = { 5, height / 2 }; // fixed
     DWORD BytesWritten = 0;
-    int sizeX = 30, sizeY = 4;
+    int sizeX = 20, sizeY = 4;
     for (int i = 0; i < sizeX; i++)
         for (int j = 0; j < sizeY; j++)
         {
             screen1.characters[index(coordi.X + i, coordi.Y + j, screen1)] = ' ';
             screen1.color[index(coordi.X + i, coordi.Y + j, screen1)] = j == 2 && !(i == 0 || i == sizeX - 1) ? 15 : 15 * 16;
         }
-    wsprintfW(&screen1.characters[index(coordi.X + 2, coordi.Y + sizeY / 2 - 1, screen1)], L"ENTER YOUR NAME");
-
+    wsprintfW(&screen1.characters[index(coordi.X + 3, coordi.Y + sizeY / 2 - 1, screen1)], L"ENTER YOUR NAME"); // fixed
     WriteConsoleOutputCharacterW(old, screen1.characters, width * height, { 0, 0 }, &BytesWritten);
     WriteConsoleOutputAttribute(old, screen1.color, width * height, { 0, 0 }, &BytesWritten);
     FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
@@ -991,6 +994,17 @@ void saveGame(HANDLE old)
     save[save.size() - 1].saveTime = chrono::system_clock::now();
     if (cursor3 < 0) cursor3 = 0;
     sound.playEnter();
+    for (int i = 0; i < sizeX; i++)
+        for (int j = 0; j < sizeY; j++)
+        {
+            screen1.characters[index(coordi.X + i, coordi.Y + j, screen1)] = ' ';
+        }
+    wsprintfW(&screen1.characters[index(coordi.X + 6, coordi.Y + sizeY / 2, screen1)], L"Success!"); // fixed
+    WriteConsoleOutputCharacterW(old, screen1.characters, width * height, { 0, 0 }, &BytesWritten);
+    WriteConsoleOutputAttribute(old, screen1.color, width * height, { 0, 0 }, &BytesWritten);
+    FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
+    /*SetConsoleCursorPosition(old, { (SHORT)(coordi.X + 2), (SHORT)(coordi.Y + 2) });*/
+    Sleep(2000);
 }
 
 bool optionAscendingTime(Save& a, Save& b) {
@@ -1000,11 +1014,37 @@ bool optionAscendingScore(Save& a, Save& b) {
     return a.snak.score > b.snak.score;
 
 }
+
 int startLoadIndex = 0;
 
+// chưa fix.
+void showGameOver() 
+{
+    coordinate coordi = { 5, height / 2 }; // fixed
+    DWORD BytesWritten = 0;
+    int sizeX = 20, sizeY = 4;
+    for (int i = 0; i < sizeX; i++)
+        for (int j = 0; j < sizeY; j++)
+        {
+            screen1.characters[index(coordi.X + i, coordi.Y + j, screen1)] = ' ';
+            screen1.color[index(coordi.X + i, coordi.Y + j, screen1)] = j == 2 && !(i == 0 || i == sizeX - 1) ? 15 : 15 * 16;
+        }
+    wsprintfW(&screen1.characters[index(coordi.X + 3, coordi.Y + sizeY / 2 - 1, screen1)], L"GAME OVER!"); // fixed
+    wsprintfW(&screen1.characters[index(coordi.X + 3, coordi.Y + sizeY / 2, screen1)], L"Do you want to save current game?"); // fixed
+    WriteConsoleOutputCharacterW(old, screen1.characters, width * height, { 0, 0 }, &BytesWritten);
+    WriteConsoleOutputAttribute(old, screen1.color, width * height, { 0, 0 }, &BytesWritten);
+    while (true)
+    {
+
+    }
+    /*FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
+    SetConsoleCursorPosition(old, { (SHORT)(coordi.X + 2), (SHORT)(coordi.Y + 2) });*/
+}
+
+// INPUT
 void input(HANDLE old)
 {
-    if ((GetAsyncKeyState('W') & 0x8000) && !key['W'] && (paused || snake1.direction != 'S'))
+    if ((GetAsyncKeyState('W') & 0x8000) && !key['W'] && (paused || snake1.direction != 'S') && !snake1.dead)
     {
         key['W'] = true;
         switch (state) {
@@ -1036,7 +1076,6 @@ void input(HANDLE old)
             {
                 sound.playMenu();
             }
-            
             if (cursor3 == 0 && startLoadIndex>0)
                 startLoadIndex--;
             else if (cursor3 > 0)
@@ -1047,7 +1086,7 @@ void input(HANDLE old)
     if (GetAsyncKeyState('W') == 0)
         key['W'] = false;
 
-    if ((GetAsyncKeyState('D') & 0x8000) && !key['D'] && (paused || snake1.direction != 'A'))
+    if ((GetAsyncKeyState('D') & 0x8000) && !key['D'] && (paused || snake1.direction != 'A') && !snake1.dead)
     {
         key['D'] = true;
         if (paused)
@@ -1056,10 +1095,8 @@ void input(HANDLE old)
             {
                 state = inGame;
                 sound.playError();
-                resetGame();
-                
+                resetGame(); 
             }
-                
         }
         else
         {
@@ -1070,7 +1107,7 @@ void input(HANDLE old)
     if (GetAsyncKeyState('D') == 0)
         key['D'] = false;
 
-    if ((GetAsyncKeyState('S') & 0x8000) && !key['S'] && (paused || snake1.direction != 'W'))
+    if ((GetAsyncKeyState('S') & 0x8000) && !key['S'] && (paused || snake1.direction != 'W') && !snake1.dead)
     {
         key['S'] = true;
         switch (state) {
@@ -1113,7 +1150,7 @@ void input(HANDLE old)
     if (GetAsyncKeyState('S') == 0)
         key['S'] = false;
 
-    if ((GetAsyncKeyState('A') & 0x8000) && !key['A'] && (paused || snake1.direction != 'D'))
+    if ((GetAsyncKeyState('A') & 0x8000) && !key['A'] && (paused || snake1.direction != 'D') && !snake1.dead)
     {
         key['A'] = true;
         if (paused)
@@ -1146,8 +1183,7 @@ void input(HANDLE old)
             if (snake1.dead)
             {
                 state = inGame;
-                sound.playError();
-                resetGame();
+                resetGame();                
             }
         }
     }
@@ -1214,7 +1250,6 @@ void input(HANDLE old)
                 if (save.size() > 0) {
                     countDownStartTime = frameN;
                     start = true;
-                    sort(save.begin(), save.end(), optionAscendingTime);
                     loadSave(save.back());
                     sound.playReady();
                 }
@@ -1228,6 +1263,7 @@ void input(HANDLE old)
                 drawIntroduction();
                 break;
             case 4:
+
                 system("color D0");
                 ExitGame();
             }
@@ -1244,6 +1280,7 @@ void input(HANDLE old)
                 sound.playEnter();
                 saveGame(old);
                 writeSaveFile();
+                state = inMenu; /// fixed back to menu after save game.
                 break;
             case 2:
                 sound.playEnter();
@@ -1253,10 +1290,13 @@ void input(HANDLE old)
             }
             break;
         case inLoad:
-            loadSave(save[cursor3]);
-            countDownStartTime = frameN;
-            start = true;
-            sound.playReady();
+            if (save.size() > 0)
+            {
+                loadSave(save[cursor3]);
+                countDownStartTime = frameN;
+                start = true;
+                sound.playReady();
+            }
             break;
         }
     }
@@ -1290,6 +1330,7 @@ void nextLevel()
 {
     sound.playPassLevel();
     level++;
+    snake1.speed += 0.1;
     snake1.score = 0;
     snake1.state = goingOut;
     coordinate snakePos;
@@ -1319,11 +1360,11 @@ void nextLevel()
 void update()
 {
     if (snake1.dead)
+    {
         paused = true;
+    }
     if (!paused)
         snake1.move(snake1.direction);
-    if (snake1.state == inside)
-        nextLevel();
     if (snake1.score >= levelScore && !snake1.levelFinished)
     {
         spawnPortal();
@@ -1331,11 +1372,18 @@ void update()
         food.clear();
         snake1.levelFinished = true;
     }
-    if (level > 5)
+    else if (snake1.state == inside)
     {
-        snake1.speed += 0.2;
-        level = 1;
+        if (level + 1 > 5)
+        {
+            snake1.speed += 0.2;
+            level = 0;
+        }
+        nextLevel();
     }
+        
+    
+    
 }
 
 void drawInfo()
@@ -1690,8 +1738,11 @@ int main()
                 accumulator1 -= timestep;
                 clear(screen1); // Xoa man hinh
                 draw(screen1, map[level], { 0, 0 }, 0, 1, 1);
+                if (!inLoad || snake1.score == 5)
+                {
+                    drawPortal();
+                }
                 drawFood(food);
-                drawPortal();
                 draw(snake1); // Vẽ rắn
                 drawSideBar();
                 countDown();
